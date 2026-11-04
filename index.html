@@ -4,6 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <title>الواقع المعزز - ليلى المحمدي</title>
 
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
@@ -30,6 +31,10 @@
       font-size: 18px;
     }
 
+    #start:disabled {
+      opacity: 0.6;
+    }
+
     #message {
       position: fixed;
       z-index: 101;
@@ -47,8 +52,8 @@
 
 <body>
 
-  <button id="start">ابدئي تجربة الواقع المعزز</button>
-  <div id="message">وجّهي الكاميرا نحو صفحة الكتاب</div>
+  <button id="start" disabled>جاري تجهيز التجربة...</button>
+  <div id="message">جاري تحميل الواقع المعزز...</div>
 
   <a-scene
     mindar-image="imageTargetSrc: ./targets.mind; autoStart: false;"
@@ -95,25 +100,45 @@
     const message = document.querySelector("#message");
     const target = document.querySelector("[mindar-image-target]");
 
+    let started = false;
+
+    scene.addEventListener("loaded", () => {
+      button.disabled = false;
+      button.textContent = "ابدئي تجربة الواقع المعزز";
+      message.textContent = "وجّهي الكاميرا نحو صفحة الكتاب";
+    });
+
     button.addEventListener("click", async () => {
+      if (started) return;
+
       try {
+        button.disabled = true;
         message.textContent = "جاري تشغيل الكاميرا...";
 
-        await scene.systems["mindar-image"].start();
+        const mindar = scene.systems["mindar-image-system"];
 
-        message.textContent = "ابحثي عن صفحة الكتاب...";
-        await video.play();
+        if (!mindar) {
+          throw new Error("لم يتم تحميل نظام التعرف على الصور");
+        }
 
+        await mindar.start();
+
+        started = true;
         button.style.display = "none";
+        message.textContent = "وجّهي الكاميرا نحو صفحة الكتاب";
 
       } catch (error) {
+        button.disabled = false;
         message.textContent = "خطأ: " + error.message;
         console.error(error);
       }
     });
 
     target.addEventListener("targetFound", () => {
-      video.play().catch(error => console.error(error));
+      video.play().catch(error => {
+        message.textContent = "تعذر تشغيل الفيديو: " + error.message;
+      });
+
       message.textContent = "تم التعرف على الصفحة!";
     });
 
