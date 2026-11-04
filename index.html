@@ -1,52 +1,54 @@
 
 <!DOCTYPE html>
-<html>
+<html lang="ar">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <title>الواقع المعزز - ليلى المحمدي</title>
+  <title>بصمة الواقع المعزز</title>
 
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 
   <style>
-    html, body {
+    body {
       margin: 0;
-      width: 100%;
-      height: 100%;
       overflow: hidden;
+      font-family: Arial, sans-serif;
     }
 
     #start {
-      position: absolute;
-      z-index: 10;
+      position: fixed;
+      z-index: 100;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      padding: 15px 25px;
-      font-size: 20px;
+      padding: 16px 24px;
       background: #1677c8;
       color: white;
-      border: 0;
+      border: none;
       border-radius: 12px;
+      font-size: 18px;
+    }
+
+    #message {
+      position: fixed;
+      z-index: 101;
+      bottom: 20px;
+      left: 10px;
+      right: 10px;
+      color: white;
+      text-align: center;
+      background: rgba(0,0,0,.65);
+      padding: 10px;
+      border-radius: 10px;
     }
   </style>
 </head>
 
 <body>
-  <button id="start">ابدئي تجربة الواقع المعزز</button>
 
-  <video
-    id="boyVideo"
-    src="./881057371_1793800741306486.mp4"
-    loop
-    muted
-    playsinline
-    webkit-playsinline
-    crossorigin="anonymous"
-    style="display:none">
-  </video>
+  <button id="start">ابدئي تجربة الواقع المعزز</button>
+  <div id="message">وجّهي الكاميرا نحو صفحة الكتاب</div>
 
   <a-scene
     mindar-image="imageTargetSrc: ./targets.mind; autoStart: false;"
@@ -57,8 +59,9 @@
 
     <a-assets>
       <video
-        id="boyAsset"
+        id="boyVideo"
         src="./881057371_1793800741306486.mp4"
+        preload="auto"
         loop
         muted
         playsinline
@@ -67,11 +70,14 @@
       </video>
     </a-assets>
 
-    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+    <a-camera
+      position="0 0 0"
+      look-controls="enabled: false">
+    </a-camera>
 
     <a-entity mindar-image-target="targetIndex: 0">
       <a-video
-        src="#boyAsset"
+        src="#boyVideo"
         position="0 0 0.05"
         width="1"
         height="1.5"
@@ -83,20 +89,39 @@
 
   <script>
     const scene = document.querySelector("a-scene");
-    const video = document.querySelector("#boyAsset");
-    const startButton = document.querySelector("#start");
+    const video = document.querySelector("#boyVideo");
+    const button = document.querySelector("#start");
+    const message = document.querySelector("#message");
 
-    startButton.addEventListener("click", async () => {
+    button.addEventListener("click", async () => {
       try {
-        await video.play();
+        message.textContent = "جاري تشغيل الكاميرا...";
+
         await scene.systems["mindar-image"].start();
-        startButton.style.display = "none";
+
+        message.textContent = "ابحثي عن صفحة الكتاب...";
+        await video.play();
+
+        button.style.display = "none";
+
       } catch (error) {
-        alert("تعذر تشغيل التجربة. تأكدي من السماح باستخدام الكاميرا.");
+        message.textContent = "خطأ: " + error.message;
         console.error(error);
       }
     });
+
+    const target = document.querySelector("[mindar-image-target]");
+
+    target.addEventListener("targetFound", () => {
+      video.play().catch(console.error);
+      message.textContent = "تم التعرف على الصفحة!";
+    });
+
+    target.addEventListener("targetLost", () => {
+      video.pause();
+      message.textContent = "وجّهي الكاميرا نحو صفحة الكتاب";
+    });
   </script>
+
 </body>
 </html>
-
