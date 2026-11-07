@@ -4,7 +4,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
   <title>الواقع المعزز - ليلى المحمدي</title>
 
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
@@ -13,140 +12,100 @@
   <style>
     body {
       margin: 0;
-      overflow: hidden;
-      font-family: Arial, sans-serif;
+      font-family: Arial;
+      background: #101820;
+      color: white;
+      text-align: center;
     }
 
     #start {
       position: fixed;
-      z-index: 100;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      padding: 16px 24px;
-      background: #1677c8;
-      color: white;
-      border: none;
+      inset: 0;
+      z-index: 10;
+      background: #101820;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 25px;
+    }
+
+    button {
+      background: #e5b94c;
+      border: 0;
+      padding: 16px 35px;
       border-radius: 12px;
-      font-size: 18px;
+      font-size: 19px;
+      font-weight: bold;
     }
 
-    #start:disabled {
-      opacity: 0.6;
-    }
-
-    #message {
-      position: fixed;
-      z-index: 101;
-      bottom: 20px;
-      left: 10px;
-      right: 10px;
-      color: white;
-      text-align: center;
-      background: rgba(0,0,0,.65);
-      padding: 10px;
-      border-radius: 10px;
-    }
+    h2 { color: #e5b94c; }
   </style>
 </head>
 
 <body>
 
-  <button id="start" disabled>جاري تجهيز التجربة...</button>
-  <div id="message">جاري تحميل الواقع المعزز...</div>
+<div id="start">
+  <h2>الواقع المعزز التفاعلي</h2>
+  <p>ليلى المحمدي</p>
+  <p>وجّهي الكاميرا نحو صفحة الكتاب لعرض التجربة التعليمية.</p>
+  <button onclick="startAR()">ابدأ التجربة</button>
+  <p id="error"></p>
+</div>
 
-  <a-scene
-    mindar-image="imageTargetSrc: ./targets.mind; autoStart: false;"
-    color-space="sRGB"
-    renderer="colorManagement: true; alpha: true"
-    vr-mode-ui="enabled: false"
-    device-orientation-permission-ui="enabled: false">
+<a-scene
+  mindar-image="imageTargetSrc: targets.mind; autoStart: false;"
+  color-space="sRGB"
+  renderer="colorManagement: true; physicallyCorrectLights: true;"
+  vr-mode-ui="enabled: false"
+  device-orientation-permission-ui="enabled: false">
 
-    <a-assets>
-      <video
-        id="boyVideo"
-        src="./boy-transparent.webm"
-        preload="auto"
-        loop
-        muted
-        playsinline
-        webkit-playsinline>
-      </video>
-    </a-assets>
+  <a-assets>
+    <video
+      id="myVideo"
+      src="./video.mp4"
+      preload="auto"
+      playsinline
+      webkit-playsinline
+      muted
+      loop>
+    </video>
+  </a-assets>
 
-    <a-camera
-      position="0 0 0"
-      look-controls="enabled: false">
-    </a-camera>
+  <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-    <a-entity mindar-image-target="targetIndex: 0">
+  <a-entity mindar-image-target="targetIndex: 0">
+    <a-video
+      src="#myVideo"
+      position="0 0 0.1"
+      width="1"
+      height="0.56">
+    </a-video>
+  </a-entity>
 
-      <a-video
-        src="#boyVideo"
-        position="0 0 0.05"
-        width="1"
-        height="1.5"
-        material="shader: flat; transparent: true; side: double">
-      </a-video>
+</a-scene>
 
-    </a-entity>
+<script>
+async function startAR() {
+  const error = document.getElementById("error");
+  const video = document.getElementById("myVideo");
+  const scene = document.querySelector("a-scene");
 
-  </a-scene>
+  try {
+    video.muted = true;
+    await video.play();
+    video.pause();
 
-  <script>
-    const scene = document.querySelector("a-scene");
-    const video = document.querySelector("#boyVideo");
-    const button = document.querySelector("#start");
-    const message = document.querySelector("#message");
-    const target = document.querySelector("[mindar-image-target]");
+    await scene.systems["mindar-image-system"].start();
 
-    let started = false;
-
-    scene.addEventListener("loaded", () => {
-      button.disabled = false;
-      button.textContent = "ابدئي تجربة الواقع المعزز";
-      message.textContent = "وجّهي الكاميرا نحو صفحة الكتاب";
-    });
-
-    button.addEventListener("click", async () => {
-      if (started) return;
-
-      try {
-        button.disabled = true;
-        message.textContent = "جاري تشغيل الكاميرا...";
-
-        const mindar = scene.systems["mindar-image-system"];
-
-        if (!mindar) {
-          throw new Error("لم يتم تحميل نظام التعرف على الصور");
-        }
-
-        await mindar.start();
-
-        started = true;
-        button.style.display = "none";
-        message.textContent = "وجّهي الكاميرا نحو صفحة الكتاب";
-
-      } catch (error) {
-        button.disabled = false;
-        message.textContent = "خطأ: " + error.message;
-        console.error(error);
-      }
-    });
-
-    target.addEventListener("targetFound", () => {
-      video.play().catch(error => {
-        message.textContent = "تعذر تشغيل الفيديو: " + error.message;
-      });
-
-      message.textContent = "تم التعرف على الصفحة!";
-    });
-
-    target.addEventListener("targetLost", () => {
-      video.pause();
-      message.textContent = "وجّهي الكاميرا نحو صفحة الكتاب";
-    });
-  </script>
+    document.getElementById("start").style.display = "none";
+    video.play().catch(() => {});
+  } catch (e) {
+    error.textContent = "تعذر تشغيل التجربة. تأكدي من ملفات المشروع وإذن الكاميرا.";
+    console.error(e);
+  }
+}
+</script>
 
 </body>
 </html>
